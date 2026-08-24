@@ -37,6 +37,6 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
-        out = self.dropout(self.proj(out))
-        return out
+        out = torch.cat([h(x) for h in self.heads], dim=-1) # (B,T,C)
+        out = self.dropout(self.proj(out)) 
+        return out 
