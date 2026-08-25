@@ -13,12 +13,16 @@ class GPT(nn.Module):
         self.ln_f = nn.LayerNorm(config.n_embd) # final layer norm
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size)
     
-    def forward(self, idx, targets=None):
+    def forward(self, idx, targets=None, pad_index=None):
         B, T = idx.shape
         tok_emb = self.token_embedding_table(idx) # token embeddings of shape (B,T,C)
         pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # position embeddings of shape (T,C)
         x = tok_emb + pos_emb # (B,T,C)
-        x = self.blocks(x) # apply transformer blocks
+        
+        key_padding_mask = (idx == pad_index) if pad_index is not None else None  # (B, T) bool
+        
+        for block in self.blocks:
+            x = block(x, key_padding_mask)
         x = self.ln_f(x) # final layer norm
         logits = self.lm_head(x) # (B,T,vocab_size)
         

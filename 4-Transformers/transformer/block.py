@@ -11,7 +11,7 @@ class Block(nn.Module):
         self.attn = MultiHeadAttention(config)
         self.ff = FeedForward(config)
         
-    def forward(self, x):
-        x = x + self.attn(self.ln1(x))
+    def forward(self, x, key_padding_mask=None):
+        x = x + self.attn(self.ln1(x), key_padding_mask=key_padding_mask)
         x = x + self.ff(self.ln2(x))
         return x

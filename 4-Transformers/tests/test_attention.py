@@ -48,3 +48,25 @@ def test_scaling_uses_head_size_not_embd():
     # should match config.head_size, not config.n_embd
     assert head.key.out_features == config.head_size
     assert head.key.out_features == config.n_embd // config.n_head
+    
+def test_pad_tokens_dont_affect_real_token_output():
+    config = make_config()  # pad_index set
+    torch.manual_seed(0)
+    attn = MultiHeadAttention(config)
+    attn.eval()
+
+    B, T = 1, config.block_size
+    x = torch.randn(B, T, config.n_embd)
+    pad_mask = torch.zeros(B, T, dtype=torch.bool)
+    pad_mask[:, -2:] = True   # last 2 positions are PAD
+
+    with torch.no_grad():
+        out_masked = attn(x, key_padding_mask=pad_mask)
+
+        x2 = x.clone()
+        x2[:, -2:, :] += 100.0   # perturb only the PAD positions' input
+        out_perturbed = attn(x2, key_padding_mask=pad_mask)
+
+    # real (non-pad) positions must be completely unaffected by changing PAD content
+    assert torch.allclose(out_masked[:, :-2, :], out_perturbed[:, :-2, :], atol=1e-6), \
+        "PAD token content leaked into real tokens' attention output"
