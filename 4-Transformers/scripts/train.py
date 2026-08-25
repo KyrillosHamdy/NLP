@@ -42,3 +42,5 @@ for epoch in range(config.num_epochs):
             _, loss = model(X_batch, targets=Y_batch)
             eval_loss += loss.item()
     print(f"Epoch [{epoch+1}/{config.num_epochs}] val loss:   {eval_loss/len(dev_loader):.4f}")
+    
+torch.save({'model_state_dict': model.state_dict(), 'config': config}, 'checkpoint.pt')
