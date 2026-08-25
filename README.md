@@ -98,7 +98,7 @@ Each section builds upon concepts from previous ones:
 ## Key Concepts Covered
 
 ### Tokenization & Embeddings
-- Byte pair encoding for subword tokenization
+- Bag‑of‑words and subword tokenization methods (BPE, SentencePiece).
 - Character-level and word-level embeddings
 - Learned vs. static representations
 
