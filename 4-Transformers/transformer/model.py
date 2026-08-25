@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from block import Block
+import torch.nn.functional as F
+from transformer.block import Block
 
 class GPT(nn.Module):
     def __init__(self, config):
@@ -12,7 +13,7 @@ class GPT(nn.Module):
         self.ln_f = nn.LayerNorm(config.n_embd) # final layer norm
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size)
     
-    def forward(self, idx):
+    def forward(self, idx, targets=None):
         B, T = idx.shape
         tok_emb = self.token_embedding_table(idx) # token embeddings of shape (B,T,C)
         pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # position embeddings of shape (T,C)
@@ -20,4 +21,24 @@ class GPT(nn.Module):
         x = self.blocks(x) # apply transformer blocks
         x = self.ln_f(x) # final layer norm
         logits = self.lm_head(x) # (B,T,vocab_size)
-        return logits
+        
+        loss = None
+        if targets is not None:
+            # reshape for cross-entropy loss
+            B, T, C = logits.shape
+            logits = logits.view(B*T, C)
+            targets = targets.view(B*T)
+            loss = F.cross_entropy(logits, targets, ignore_index=self.config.pad_index)
+            
+        return logits, loss
+    
+    @torch.no_grad()
+    def generate(self, idx, max_new_tokens):
+        for _ in range(max_new_tokens):
+            idx_cond = idx[:, -self.config.block_size:] # crop context to block size
+            logits, _ = self(idx_cond)
+            logits = logits[:, -1, :] # focus on last time step
+            probs = F.softmax(logits, dim=-1) # convert to probabilities
+            idx_next = torch.multinomial(probs, num_samples=1) # sample from distribution
+            idx = torch.cat((idx, idx_next), dim=1) # append sampled index to sequence
+        return idx

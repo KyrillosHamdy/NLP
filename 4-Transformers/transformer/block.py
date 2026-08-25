@@ -1,6 +1,6 @@
 import torch.nn as nn
-from feedforward import FeedForward
-from attention import MultiHeadAttention
+from transformer.feedforward import FeedForward
+from transformer.attention import MultiHeadAttention
 
 class Block(nn.Module):
     def __init__(self, config):
