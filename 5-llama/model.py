@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 from typing import Optional
-from torch.nn import RMSNorm, functional as F
+from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
 class ModelArgs:
     vocab_size: int = -1
-    dim: int = 4092
+    dim: int = 4096
     n_layer: int = 32
     n_heads: int = 32
     multiple_of: int = 256
@@ -23,7 +23,7 @@ def precompute_freqs_cis(head_dim: int, max_seq_len: int, device: str, theta: fl
     assert head_dim % 2 == 0, "Head dimension must be even for complex numbers."
     
     # shape: (head_dim // 2)
-    freqs = 1.0 / (theta ** (torch.arange(0, head_dim, 2).float() / head_dim))
+    freqs = 1.0 / (theta ** (torch.arange(0, head_dim, 2, device=device).float() / head_dim))
     t = torch.arange(max_seq_len, device=device)
     # shape: (seq_len, head_dim // 2)
     freqs = torch.outer(t, freqs)
@@ -35,7 +35,7 @@ def apply_rotary_embeddings(x: torch.Tensor, freqs_complex: torch.Tensor, device
     """
     Apply rotary embeddings to the input tensor.
     """
-    
+    original_shape = x.shape
     # shape: (batch_size, seq_len, n_head, head_dim) -> (batch_size, seq_len, n_head, head_dim // 2, 2)
     x = x.float().reshape(*x.shape[:-1], -1, 2)
     # shape: (batch_size, seq_len, n_head, head_dim // 2, 2) -> (batch_size, seq_len, n_head, head_dim // 2)
@@ -46,7 +46,7 @@ def apply_rotary_embeddings(x: torch.Tensor, freqs_complex: torch.Tensor, device
     # shape: (batch_size, seq_len, n_head, head_dim // 2) -> (batch_size, seq_len, n_head, head_dim // 2, 2)
     x_out = torch.view_as_real(x_rotated)
     # shape: (batch_size, seq_len, n_head, head_dim // 2, 2) -> (batch_size, seq_len, n_head, head_dim)
-    x_out = x_out.reshape(*x_out.shape)
+    x_out = x_out.reshape(*original_shape)
     return x_out.type_as(x).to(device)
 
 
@@ -146,9 +146,8 @@ class Transformer(nn.Module):
         self.output = nn.Linear(self.args.dim, self.args.vocab_size, bias=False)
 
         self.freqs_complex = precompute_freqs_cis(
-                        self.args.dim // self.args.n_head, 
+                        self.args.dim // self.args.n_heads, 
                         self.args.max_seq_len, 
-                        end=self.args.max_seq_len, 
                         device=self.args.device
         )
     
