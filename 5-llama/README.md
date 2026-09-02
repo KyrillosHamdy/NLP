@@ -31,7 +31,7 @@ This gives good coverage for the architecture and cache logic, though the tests 
 - (Zhang & Sennrich, 2019) & (Xiong et al., 2020): the implementation uses RMS-style normalization and pre-norm ordering, and adopts gated/alternative FFN patterns and practical sizing heuristics discussed in those works.
 - (Ainslie et al., 2023): the model includes GQA-style head grouping via `n_kv_heads`, which is a key architectural optimization for memory-efficient multi-query decoding.
 
-**References (paper links)**
+**References**
 
 - (Zhang & Sennrich 2019) - [Root Mean Square Layer Normalization](https://arxiv.org/pdf/1910.07467)
 - (Xiong et al 2020) - [On Layer Normalization in the Transformer Architecture](https://arxiv.org/pdf/2002.04745)
